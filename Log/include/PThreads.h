@@ -10,7 +10,12 @@ namespace log {
     namespace threading {
         
         //return the thread ID
-        std::string getThreadId();
+        std::string getThreadId()
+        {
+            char buffer[16];
+            ::sprintf(buffer, "%lu", pthread_self());
+            return static_cast<std::string>(buffer);
+        }
     
         class Mutex {
             private:
