@@ -17,6 +17,9 @@ namespace log {
     class Appender
     {
         public:
+            static Appender* getAppend(const std::string& name);
+            static bool reopenall();
+            static void closeall();
             virtual ~Appender();
             virtual void doAppend(const LoggingEvent& event) = 0;
             virtual bool reopen() = 0;
@@ -30,7 +33,7 @@ namespace log {
             Appender(const std::string& name);
         private:
             typedef std::map<std::string, Appender*> AppenderMap;
-            static Appender* _allAppenders;
+            static AppenderMap* _allAppenders;
             static threading::Mutex _appenderMapMutex;
             static AppenderMap& _getAllAppenders();
             static void _deleteAllAppenders();
