@@ -6,6 +6,17 @@ Appender::AppenderMap* Appender::_allAppenders = nullptr;
 
 threading::Mutex Appender::_appenderMapMutex;
 
+Appender::Appender(const std::string& name)
+    : _name(name)
+{
+    _addAppender(this);
+}
+
+Appender::~Appender()
+{
+    _removeAppender(this);
+}
+
 Appender::AppenderMap& Appender::_getAllAppenders()
 {
     threading::ScopedLock Lock(_appenderMapMutex);
@@ -61,6 +72,17 @@ void Appender::closeall()
     for(auto& it : _getAllAppenders())
     {
         it.second->close();
+    }
+}
+
+void Appender::_deleteAllAppenders()
+{
+    threading::ScopedLock Lock(_appenderMapMutex);
+    for(auto it = _getAllAppenders().begin(); it != _getAllAppenders().end();)
+    {
+        Appender* tmp = it->second;
+        it++;
+        delete tmp;
     }
 }
 
