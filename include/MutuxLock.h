@@ -23,6 +23,7 @@ private:
     pthread_mutexattr_t _mattr;
 };
 
+/* It will not be o error*/
 MutuxLock::MutuxLock()
 {
     if(pthread_mutex_init(&_lock, nullptr))
