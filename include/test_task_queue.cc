@@ -20,7 +20,7 @@ void push_task_enqueue()
 {
     for(int i = 0; i < N; i++)
     {
-        _task_queue.ElemPushQueue(task);
+        _task_queue.TaskPushQueue(task);
         cout << "push task success" << endl;
         sleep(1);
     }
@@ -30,7 +30,7 @@ void pop_task_outqueue()
 {
     for(int i = 0; i < N; i++)
     {   
-        _task_queue.ElemPopQueue();
+        _task_queue.TaskPopQueue();
         cout << "take task success" << endl;
         /*process task need some time*/
         sleep(2);

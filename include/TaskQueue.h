@@ -7,21 +7,25 @@
 
 using namespace std;
 
+static const int MaxTaskCount = 1000;
+
 class TaskQueue
 {
 public:
     using Task = std::function<void()>;
 public:
+    TaskQueue();
     TaskQueue(unsigned int);
     
-    bool ElemPushQueue(const Task&);
-    Task ElemPopQueue();
+    bool TaskPushQueue(const Task&);
+    bool TaskPushQueue(Task&&);
+    Task TaskPopQueue();
     bool QueueIsEmpty() const;
     bool QueueIsFull() const;
     int  GetQueueSize() const;
     int  GetQueueMaxSize() const;
 
-    void WakeUpALLConsumerthread();
+    void WakeUpALLWorkThread();
 private:
     bool _flag;
     unsigned int _max_size;
@@ -30,6 +34,16 @@ private:
     Condition _que_not_empty;
     Condition _que_not_full;
 };
+
+TaskQueue::TaskQueue()
+    : _flag(true)
+    , _max_size(MaxTaskCount)
+    , _mutex()
+    , _que_not_empty(_mutex)
+    , _que_not_full(_mutex)
+{
+
+}
 
 TaskQueue::TaskQueue(unsigned int sz)
     : _flag(true)
@@ -42,7 +56,7 @@ TaskQueue::TaskQueue(unsigned int sz)
 }
 
 /* 在生产者线程进行运行 */
-inline bool TaskQueue::ElemPushQueue(const Task& task)
+inline bool TaskQueue::TaskPushQueue(const Task& task)
 {
     {
         MutuxLockGuard AutoLock(_mutex);
@@ -57,14 +71,31 @@ inline bool TaskQueue::ElemPushQueue(const Task& task)
     return true;
 }
 
+inline bool TaskQueue::TaskPushQueue(Task&& task)
+{
+    {
+        MutuxLockGuard AutoLock(_mutex);
+        while(QueueIsFull())
+        {
+            cout << ">>> work thread id : " << pthread_self()  << " sleep in conditon, task queue is full, need to wait..." << endl;
+            _que_not_full.SleepInConditon();
+        }
+        _que.push(std::forward<Task>(task));
+    }
+    /* cout << "push task success" << endl; */
+    _que_not_empty.NotifySleepInConditionOneThread();
+    return true;
+}    
+
 /*在消费者线程进行运行*/
-inline TaskQueue::Task TaskQueue::ElemPopQueue()
+inline TaskQueue::Task TaskQueue::TaskPopQueue()
 {
     Task task;
     {
         MutuxLockGuard AutoLock(_mutex);
         while(_flag && QueueIsEmpty())
         {
+            cout << ">>> work thread id : " << pthread_self() << " sleep in conditon, task queue is empty, need to wait..." << endl;
             _que_not_empty.SleepInConditon();
         }
 
@@ -80,7 +111,6 @@ inline TaskQueue::Task TaskQueue::ElemPopQueue()
 
     }
     _que_not_empty.NotifySleepInConditionOneThread();
-    cout << "take task success" << endl;
     return task;
 }
 
@@ -104,7 +134,7 @@ inline int TaskQueue::GetQueueMaxSize() const
     return _max_size;
 }
 
-void TaskQueue::WakeUpALLConsumerthread()
+void TaskQueue::WakeUpALLWorkThread()
 {
     _flag = false;
     _que_not_empty.NotifySleepInConditionAllThread();
